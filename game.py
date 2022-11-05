@@ -58,7 +58,7 @@ def menu_screen(win, name):
     while run:
         win.blit(chessbg, (0,0))
         small_font = pygame.font.SysFont("comicsans", 50)
-        
+
         if offline:
             off = small_font.render("Server Offline, Try Again Later...", 1, (255, 0, 0))
             win.blit(off, (width / 2 - off.get_width() / 2, 500))
@@ -87,12 +87,12 @@ def redraw_gameWindow(win, bo, p1, p2, color, ready):
     win.blit(board, (0, 0))
     bo.draw(win, color)
 
-    formatTime1 = str(int(p1//60)) + ":" + str(int(p1%60))
-    formatTime2 = str(int(p2 // 60)) + ":" + str(int(p2 % 60))
+    formatTime1 = f"{int(p1 // 60)}:{int(p1 % 60)}"
+    formatTime2 = f"{int(p2 // 60)}:{int(p2 % 60)}"
     if int(p1%60) < 10:
-        formatTime1 = formatTime1[:-1] + "0" + formatTime1[-1]
+        formatTime1 = f"{formatTime1[:-1]}0{formatTime1[-1]}"
     if int(p2%60) < 10:
-        formatTime2 = formatTime2[:-1] + "0" + formatTime2[-1]
+        formatTime2 = f"{formatTime2[:-1]}0{formatTime2[-1]}"
 
     font = pygame.font.SysFont("comicsans", 30)
     try:
@@ -111,29 +111,23 @@ def redraw_gameWindow(win, bo, p1, p2, color, ready):
         win.blit(txt3, (width/2-txt3.get_width()/2, 10))
 
     if not ready:
-        show = "Waiting for Player"
-        if color == "s":
-            show = "Waiting for Players"
+        show = "Waiting for Players" if color == "s" else "Waiting for Player"
         font = pygame.font.SysFont("comicsans", 80)
         txt = font.render(show, 1, (255, 0, 0))
         win.blit(txt, (width/2 - txt.get_width()/2, 300))
 
-    if not color == "s":
+    if color != "s":
         font = pygame.font.SysFont("comicsans", 30)
         if color == "w":
             txt3 = font.render("YOU ARE WHITE", 1, (255, 0, 0))
-            win.blit(txt3, (width / 2 - txt3.get_width() / 2, 10))
         else:
             txt3 = font.render("YOU ARE BLACK", 1, (255, 0, 0))
-            win.blit(txt3, (width / 2 - txt3.get_width() / 2, 10))
-
+        win.blit(txt3, (width / 2 - txt3.get_width() / 2, 10))
         if bo.turn == color:
             txt3 = font.render("YOUR TURN", 1, (255, 0, 0))
-            win.blit(txt3, (width / 2 - txt3.get_width() / 2, 700))
         else:
             txt3 = font.render("THEIR TURN", 1, (255, 0, 0))
-            win.blit(txt3, (width / 2 - txt3.get_width() / 2, 700))
-
+        win.blit(txt3, (width / 2 - txt3.get_width() / 2, 700))
     pygame.display.update()
 
 
@@ -165,13 +159,12 @@ def click(pos):
     """
     x = pos[0]
     y = pos[1]
-    if rect[0] < x < rect[0] + rect[2]:
-        if rect[1] < y < rect[1] + rect[3]:
-            divX = x - rect[0]
-            divY = y - rect[1]
-            i = int(divX / (rect[2]/8))
-            j = int(divY / (rect[3]/8))
-            return i, j
+    if rect[0] < x < rect[0] + rect[2] and rect[1] < y < rect[1] + rect[3]:
+        divX = x - rect[0]
+        divY = y - rect[1]
+        i = int(divX / (rect[2]/8))
+        j = int(divY / (rect[3]/8))
+        return i, j
 
     return -1, -1
 
@@ -189,12 +182,12 @@ def main():
     count = 0
 
     bo = n.send("update_moves")
-    bo = n.send("name " + name)
+    bo = n.send(f"name {name}")
     clock = pygame.time.Clock()
     run = True
 
     while run:
-        if not color == "s":
+        if color != "s":
             p1Time = bo.time1
             p2Time = bo.time2
             if count == 60:
@@ -212,7 +205,7 @@ def main():
             run = False
             break
 
-        if not color == "s":
+        if color != "s":
             if p1Time <= 0:
                 bo = n.send("winner b")
             elif p2Time <= 0:
@@ -239,11 +232,7 @@ def main():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_q and color != "s":
                     # quit game
-                    if color == "w":
-                        bo = n.send("winner b")
-                    else:
-                        bo = n.send("winner w")
-
+                    bo = n.send("winner b") if color == "w" else n.send("winner w")
                 if event.key == pygame.K_RIGHT:
                     bo = n.send("forward")
 
@@ -251,13 +240,17 @@ def main():
                     bo = n.send("back")
 
 
-            if event.type == pygame.MOUSEBUTTONUP and color != "s":
-                if color == bo.turn and bo.ready:
-                    pos = pygame.mouse.get_pos()
-                    bo = n.send("update moves")
-                    i, j = click(pos)
-                    bo = n.send("select " + str(i) + " " + str(j) + " " + color)
-    
+            if (
+                event.type == pygame.MOUSEBUTTONUP
+                and color != "s"
+                and color == bo.turn
+                and bo.ready
+            ):
+                pos = pygame.mouse.get_pos()
+                bo = n.send("update moves")
+                i, j = click(pos)
+                bo = n.send(f"select {str(i)} {str(j)} {color}")
+
     n.disconnect()
     bo = 0
     menu_screen(win)
